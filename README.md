@@ -142,3 +142,9 @@ MIT
 ## Author
 
 v01d
+
+## Support
+
+If you find this project helpful, consider supporting my work:
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/yxc84wdcqsb)
