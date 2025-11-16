@@ -147,4 +147,4 @@ v01d
 
 If you find this project helpful, consider supporting my work:
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/yxc84wdcqsb)
+[![Support me on Ko-fi](https://img.shields.io/badge/Support%20on%20Ko--fi-FF5E8A?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/v01dworks)
