@@ -78,6 +78,7 @@ async def create_asset(
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
     
+    
     asset = Asset(
         id=new_id,
         name=name,
@@ -140,6 +141,10 @@ async def get_ui():
         <title>Game Dev Asset Catalogue</title>
         <style>
             body { font-family: Arial; margin: 20px; }
+            .filter-section { background-color: #f0f0f0; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+            .filter-section label { display: inline-block; margin-right: 15px; font-weight: bold; }
+            .filter-section select, .filter-section input { padding: 8px; margin-right: 10px; }
+            .filter-section button { background-color: #4CAF50; color: white; padding: 8px 15px; border: none; cursor: pointer; }
             table { border-collapse: collapse; width: 100%; margin-top: 20px; }
             th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
             th { background-color: #4CAF50; color: white; }
@@ -156,6 +161,26 @@ async def get_ui():
     <body>
         <h1>Game Dev Asset Catalogue</h1>
         <button onclick="toggleForm()">+ Add New Asset</button>
+
+        <div class="filter-section">
+            <label>Filter by Category:</label>
+            <select id="filterCategory">
+                <option value="">All Categories</option>
+                <option value="3D Model">3D Model</option>
+                <option value="2D Sprite">2D Sprite</option>
+                <option value="Texture">Texture</option>
+                <option value="Music">Music</option>
+                <option value="Sound Effect">Sound Effect</option>
+                <option value="Script">Script</option>
+                <option value="Other">Other</option>
+            </select>
+            
+            <label>Filter by Tags (comma-separated):</label>
+            <input type="text" id="filterTags" placeholder="e.g., weapon, fantasy">
+            
+            <button onclick="applyFilters()">Apply Filters</button>
+            <button onclick="clearFilters()">Clear Filters</button>
+        </div>
 
         <form id="assetForm" class="show">
             <h2>Create New Asset</h2>
@@ -214,8 +239,22 @@ async def get_ui():
                 form.classList.toggle('show');
             }
 
-            async function loadAssets() {
-                const response = await fetch('/api/assets');
+            async function loadAssets(category = '', tags = '') {
+                let url = '/api/assets';
+                const params = new URLSearchParams();
+                
+                if (category) {
+                    params.append('category', category);
+                }
+                if (tags) {
+                    params.append('tags', tags);
+                }
+                
+                if (params.toString()) {
+                    url += '?' + params.toString();
+                }
+                
+                const response = await fetch(url);
                 const data = await response.json();
                 const tbody = document.getElementById('tableBody');
                 tbody.innerHTML = '';
@@ -235,6 +274,18 @@ async def get_ui():
                 });
             }
 
+            function applyFilters() {
+                const category = document.getElementById('filterCategory').value;
+                const tags = document.getElementById('filterTags').value;
+                loadAssets(category, tags);
+            }
+
+            function clearFilters() {
+                document.getElementById('filterCategory').value = '';
+                document.getElementById('filterTags').value = '';
+                loadAssets();
+            }
+
             async function deleteAsset(asset_id) {
                 if (confirm('Are you sure you want to delete this asset?')) {
                     const response = await fetch(`/api/assets/${asset_id}`, {
@@ -242,7 +293,7 @@ async def get_ui():
                     });
 
                     if (response.ok) {
-                        loadAssets();
+                        applyFilters();
                     } else {
                         alert('Error deleting asset');
                     }
@@ -279,7 +330,7 @@ async def get_ui():
                 if (response.ok) {
                     document.getElementById('assetForm').reset();
                     toggleForm();
-                    loadAssets();
+                    clearFilters();
                 } else {
                     const error = await response.json();
                     alert('Error creating asset: ' + JSON.stringify(error));
