@@ -25,6 +25,7 @@ if not os.path.exists(UPLOAD_DIR):
 class AssetCategory(str, Enum):
     MODEL_3D = "3D Model"
     SPRITE_2D = "2D Sprite"
+    TILEMAP = "Tilemap"
     TEXTURE = "Texture"
     MUSIC = "Music"
     SFX = "Sound Effect"
@@ -224,6 +225,7 @@ async def get_ui():
                 <option value="3D Model">3D Model</option>
                 <option value="2D Sprite">2D Sprite</option>
                 <option value="Texture">Texture</option>
+                <option value="Tilemap">Tilemap</option>
                 <option value="Music">Music</option>
                 <option value="Sound Effect">Sound Effect</option>
                 <option value="Script">Script</option>
@@ -247,6 +249,7 @@ async def get_ui():
                 <option value="3D Model">3D Model</option>
                 <option value="2D Sprite">2D Sprite</option>
                 <option value="Texture">Texture</option>
+                <option value="Tilemap">Tilemap</option>
                 <option value="Music">Music</option>
                 <option value="Sound Effect">Sound Effect</option>
                 <option value="Script">Script</option>
