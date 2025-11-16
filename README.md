@@ -141,7 +141,7 @@ MIT
 
 ## Author
 
-v01d
+Dustin Olsen / v01d / v01dworks
 
 ## Support
 
