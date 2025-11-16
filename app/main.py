@@ -1,12 +1,10 @@
 from fastapi import FastAPI, UploadFile, File, Form
-from pydantic import BaseModel
 from typing import Optional
 from enum import Enum
 from fastapi.params import Query
 from fastapi.responses import FileResponse, HTMLResponse
 import os
 import shutil
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -190,5 +188,6 @@ async def delete_asset(asset_id: int):
 
 @app.get("/", response_class=HTMLResponse)
 async def get_ui():
-    with open("templates/index.html", "r") as f:
+    html_path = os.path.join(os.path.dirname(__file__), "..", "templates", "index.html")
+    with open(html_path, "r") as f:
         return f.read()
