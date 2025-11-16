@@ -32,17 +32,6 @@ Asset(id=2, name="Forest Texture Pack", category=AssetCategory.TEXTURE, license_
 
 ]
 
-users = ["Alice", "Bob", "Charlie"]
-
-@app.get("/")
-async def read_root():
-    return {"Hello": "World"}
-
-@app.get("/users")
-async def get_users():
-    return {"users": users}
-
-
 @app.get("/assets")
 async def get_assets():
     return {"assets": assets_db}   
