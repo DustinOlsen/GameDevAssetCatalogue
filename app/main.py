@@ -3,6 +3,7 @@ from typing import Optional
 from enum import Enum
 from fastapi.params import Query
 from fastapi.responses import FileResponse, HTMLResponse
+from pydantic import BaseModel
 import os
 import shutil
 from sqlalchemy import create_engine, Column, Integer, String, Text
@@ -47,6 +48,7 @@ class Asset(BaseModel):
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_engine(DATABASE_URL)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -185,6 +187,50 @@ async def delete_asset(asset_id: int):
     db.close()
     return {"error": "Asset not found"}
 
+
+# Update an existing Asset
+@app.put("/api/assets/{asset_id}")
+async def update_asset(
+    asset_id: int,
+    name: str = Form(...),
+    category: AssetCategory = Form(...),
+    license_type: str = Form(...),
+    source_url: str = Form(...),
+    description: Optional[str] = Form(None),
+    tags: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None)
+):
+    db = SessionLocal()
+    asset = db.query(AssetDB).filter(AssetDB.id == asset_id).first()
+    
+    if not asset:
+        db.close()
+        return {"error": "Asset not found"}
+    
+    tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()] if tags else []
+    
+    asset.name = name
+    asset.category = category.value
+    asset.license_type = license_type
+    asset.source_url = source_url
+    asset.description = description
+    asset.tags = ",".join(tag_list)
+    
+    if file is not None and file.filename:
+        # Delete old file if exists
+        if asset.file_path and os.path.exists(asset.file_path):
+            os.remove(asset.file_path)
+        
+        file_path = f"{UPLOAD_DIR}/{asset_id}_{file.filename}"
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        asset.file_path = file_path
+    
+    db.commit()
+    db.refresh(asset)
+    db.close()
+    
+    return asset
 
 @app.get("/", response_class=HTMLResponse)
 async def get_ui():

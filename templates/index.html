@@ -102,6 +102,9 @@
         function toggleForm() {
             const form = document.getElementById('assetForm');
             form.classList.toggle('show');
+            if (!form.classList.contains('show')) {
+                resetForm();
+            }
         }
 
         async function loadAssets(category = '', tags = '') {
@@ -125,6 +128,7 @@
             tbody.innerHTML = '';
             
             data.assets.forEach(asset => {
+                // Main asset row
                 const row = tbody.insertRow();
                 row.innerHTML = `
                     <td>${asset.id}</td>
@@ -134,7 +138,18 @@
                     <td>${asset.tags.join(', ')}</td>
                     <td><a href="${asset.source_url}" target="_blank">Link</a></td>
                     <td>${asset.file_path ? `<a href="/api/assets/${asset.id}/file">View</a>` : 'None'}</td>
-                    <td><button onclick="deleteAsset(${asset.id})">Delete</button></td>
+                    <td>
+                        <button onclick="editAsset(${asset.id})">Edit</button>
+                        <button onclick="deleteAsset(${asset.id})">Delete</button>
+                    </td>
+                `;
+                
+                // Description row
+                const descRow = tbody.insertRow();
+                descRow.innerHTML = `
+                    <td colspan="8" style="background-color: #f9f9f9; font-style: italic; padding: 10px;">
+                        <strong>Description:</strong> ${asset.description || 'No description provided'}
+                    </td>
                 `;
             });
         }
@@ -165,7 +180,34 @@
             }
         }
 
+        function resetForm() {
+            document.getElementById('assetForm').reset();
+            document.getElementById('assetForm').dataset.assetId = '';
+            document.getElementById('assetForm').querySelector('h2').innerText = 'Create New Asset';
+            document.getElementById('assetForm').querySelector('button[type="button"]:first-of-type').innerText = 'Create Asset';
+        }
+
+        async function editAsset(asset_id) {
+            const response = await fetch(`/api/assets/${asset_id}`);
+            const asset = await response.json();
+            
+            document.getElementById('name').value = asset.name;
+            document.getElementById('category').value = asset.category;
+            document.getElementById('license_type').value = asset.license_type;
+            document.getElementById('source_url').value = asset.source_url;
+            document.getElementById('description').value = asset.description || '';
+            document.getElementById('tags').value = asset.tags.join(', ');
+            
+            document.getElementById('assetForm').querySelector('h2').innerText = 'Edit Asset';
+            document.getElementById('assetForm').querySelector('button[type="button"]:first-of-type').innerText = 'Update Asset';
+            document.getElementById('assetForm').dataset.assetId = asset_id;
+            
+            document.getElementById('assetForm').classList.add('show');
+            document.getElementById('assetForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
         async function submitForm() {
+            const assetId = document.getElementById('assetForm').dataset.assetId;
             const formData = new FormData();
             formData.append('name', document.getElementById('name').value);
             formData.append('category', document.getElementById('category').value);
@@ -187,18 +229,26 @@
                 formData.append('file', file);
             }
 
-            const response = await fetch('/api/assets', {
-                method: 'POST',
+            let url = '/api/assets';
+            let method = 'POST';
+            
+            if (assetId) {
+                url = `/api/assets/${assetId}`;
+                method = 'PUT';
+            }
+
+            const response = await fetch(url, {
+                method: method,
                 body: formData
             });
 
             if (response.ok) {
-                document.getElementById('assetForm').reset();
+                resetForm();
                 toggleForm();
                 clearFilters();
             } else {
                 const error = await response.json();
-                alert('Error creating asset: ' + JSON.stringify(error));
+                alert('Error: ' + JSON.stringify(error));
             }
         }
 
