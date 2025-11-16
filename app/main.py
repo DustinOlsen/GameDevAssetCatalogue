@@ -115,6 +115,22 @@ async def get_asset_file(asset_id: int):
             return {"error": "File not found"}
     return {"error": "Asset not found"}
 
+
+
+# Delete an Asset by ID
+@app.delete("/api/assets/{asset_id}")
+async def delete_asset(asset_id: int):
+    global assets_db
+    for i, asset in enumerate(assets_db):
+        if asset.id == asset_id:
+            deleted_asset = assets_db.pop(i)
+            # Optionally delete the file if it exists
+            if deleted_asset.file_path and os.path.exists(deleted_asset.file_path):
+                os.remove(deleted_asset.file_path)
+            return {"message": f"Asset {asset_id} deleted successfully"}
+    return {"error": "Asset not found"}
+
+
 @app.get("/", response_class=HTMLResponse)
 async def get_ui():
     return """
@@ -186,6 +202,7 @@ async def get_ui():
                     <th>Tags</th>
                     <th>Source</th>
                     <th>File</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -213,8 +230,23 @@ async def get_ui():
                         <td>${asset.tags.join(', ')}</td>
                         <td><a href="${asset.source_url}" target="_blank">Link</a></td>
                         <td>${asset.file_path ? `<a href="/api/assets/${asset.id}/file">View</a>` : 'None'}</td>
+                        <td><button onclick="deleteAsset(${asset.id})">Delete</button></td>
                     `;
                 });
+            }
+
+            async function deleteAsset(asset_id) {
+                if (confirm('Are you sure you want to delete this asset?')) {
+                    const response = await fetch(`/api/assets/${asset_id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        loadAssets();
+                    } else {
+                        alert('Error deleting asset');
+                    }
+                }
             }
 
             async function submitForm() {
