@@ -19,13 +19,34 @@ A FastAPI-based web application for cataloguing and managing game development as
 - **Database**: PostgreSQL + SQLAlchemy
 - **Frontend**: HTML/CSS/JavaScript
 - **Server**: Uvicorn
+- **Containerization**: Docker & Docker Compose
 
-## Installation
+## Quick Start (Docker)
 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd GameDevAssetCatalogue
+   cd GameDevAssetCatalogue/GameDevAssetCatalogue
+   ```
+
+2. **Run with Docker Compose**
+   ```bash
+   docker-compose up --build
+   ```
+
+3. **Access the application**
+   - Web UI: `http://localhost:8000/`
+   - API Docs: `http://localhost:8000/docs`
+   - ReDoc: `http://localhost:8000/redoc`
+
+That's it! The database will automatically initialize.
+
+## Manual Installation (Local Development)
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd GameDevAssetCatalogue/GameDevAssetCatalogue
    ```
 
 2. **Create a virtual environment**
@@ -40,9 +61,12 @@ A FastAPI-based web application for cataloguing and managing game development as
    ```
 
 4. **Set up environment variables**
-   Create a `.env` file in the project root:
+   ```bash
+   cp .env.example .env
    ```
-   DATABASE_URL=postgresql://your_username@localhost/assets_db
+   Edit `.env` with your PostgreSQL credentials:
+   ```
+   DATABASE_URL=postgresql://your_username:your_password@localhost/assets_db
    UPLOAD_DIR=uploaded_assets
    ```
 
@@ -53,7 +77,6 @@ A FastAPI-based web application for cataloguing and managing game development as
 
 6. **Run the server**
    ```bash
-   cd GameDevAssetCatalogue
    uvicorn app.main:app --reload
    ```
 
@@ -107,11 +130,16 @@ A FastAPI-based web application for cataloguing and managing game development as
 ```
 GameDevAssetCatalogue/
 ├── app/
-│   └── main.py          # FastAPI application
-├── uploaded_assets/     # Uploaded files directory
-├── .env                 # Environment variables (not in repo)
-├── .gitignore           # Git ignore file
-└── README.md           # This file
+│   └── main.py              # FastAPI application
+├── templates/
+│   └── index.html           # Web UI
+├── uploaded_assets/         # Uploaded files directory
+├── Dockerfile               # Docker image configuration
+├── docker-compose.yml       # Docker Compose setup
+├── requirements.txt         # Python dependencies
+├── .env.example             # Example environment variables
+├── .gitignore               # Git ignore file
+└── README.md                # This file
 ```
 
 ## Environment Variables
@@ -119,12 +147,33 @@ GameDevAssetCatalogue/
 - `DATABASE_URL` - PostgreSQL connection string
 - `UPLOAD_DIR` - Directory for storing uploaded files (default: `uploaded_assets`)
 
+See `.env.example` for reference.
+
 ## Development
 
 To add a new asset category:
 
 1. Add to the `AssetCategory` enum in `app/main.py`
-2. Add to both dropdown menus in the HTML form
+2. Add to both dropdown menus in `templates/index.html`
+
+## Docker Commands
+
+```bash
+# Start containers
+docker-compose up
+
+# Start in background
+docker-compose up -d
+
+# Stop containers
+docker-compose down
+
+# Remove volumes (reset database)
+docker-compose down -v
+
+# View logs
+docker-compose logs -f
+```
 
 ## Future Enhancements
 
@@ -141,7 +190,7 @@ MIT
 
 ## Author
 
-v01d
+Dustin Olsen / v01d / v01dworks
 
 ## Support
 
