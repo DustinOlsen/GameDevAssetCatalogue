@@ -52,11 +52,18 @@ async def create_asset(asset: Asset):
     return asset
 
 
-# Get all Assets in the catalogue (with optional category filter)
+# Get all Assets in the catalogue (with optional category and tag filters)
 @app.get("/assets")
-async def get_assets(category: Optional[AssetCategory] = Query(None)):
-    if category is None:
-        return {"assets": assets_db}
+async def get_assets(category: Optional[AssetCategory] = Query(None), tags: Optional[str] = Query(None)):
+    filtered_assets = assets_db
     
-    filtered_assets = [asset for asset in assets_db if asset.category == category]
+    # Filter by category if provided
+    if category is not None:
+        filtered_assets = [asset for asset in filtered_assets if asset.category == category]
+    
+    # Filter by tags if provided (comma-separated)
+    if tags is not None:
+        tag_list = [tag.strip() for tag in tags.split(",")]
+        filtered_assets = [asset for asset in filtered_assets if any(tag in asset.tags for tag in tag_list)]
+    
     return {"assets": filtered_assets}
