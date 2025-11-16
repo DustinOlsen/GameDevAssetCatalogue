@@ -22,16 +22,15 @@ class Asset(BaseModel):
     license_type: str # e.g., "Free", "Paid", "Creative Commons"
     source_url: str
     description: Optional[str] = None
+    tags: list[str] = [] 
 
 
 
 # Placeholder in-memory asset storage
 # In a real application, this would be replaced with a database
 assets_db = [
-Asset(id=1, name="Medieval Sword", category=AssetCategory.MODEL_3D, license_type="Paid", source_url="http://example.com/sword", description="A high-poly medieval sword model."),
-Asset(id=2, name="Forest Texture Pack", category=AssetCategory.TEXTURE, license_type="Free", source_url="http://example.com/forest-textures", description="A collection of seamless forest textures."),
-
-
+    Asset(id=1, name="Medieval Sword", category=AssetCategory.MODEL_3D, license_type="Paid", source_url="http://example.com/sword", description="A high-poly medieval sword model.", tags=["weapon", "medieval"]),
+    Asset(id=2, name="Forest Texture Pack", category=AssetCategory.TEXTURE, license_type="Free", source_url="http://example.com/forest-textures", description="A collection of seamless forest textures.", tags=["forest", "nature", "seamless"]),
 ]
 
 
