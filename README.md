@@ -17,7 +17,7 @@ A FastAPI-based web application for cataloguing and managing game development as
 
 - **Backend**: FastAPI
 - **Database**: PostgreSQL + SQLAlchemy
-- **Frontend**: HTML/CSS/JavaScript
+- **Frontend**: HTML
 - **Server**: Uvicorn
 - **Containerization**: Docker & Docker Compose
 
