@@ -191,12 +191,15 @@
             const response = await fetch(`/api/assets/${asset_id}`);
             const asset = await response.json();
             
+            // Convert tags array back to comma-separated string
+            const tagsString = Array.isArray(asset.tags) ? asset.tags.join(', ') : asset.tags;
+            
             document.getElementById('name').value = asset.name;
             document.getElementById('category').value = asset.category;
             document.getElementById('license_type').value = asset.license_type;
             document.getElementById('source_url').value = asset.source_url;
             document.getElementById('description').value = asset.description || '';
-            document.getElementById('tags').value = asset.tags.join(', ');
+            document.getElementById('tags').value = tagsString;
             
             document.getElementById('assetForm').querySelector('h2').innerText = 'Edit Asset';
             document.getElementById('assetForm').querySelector('button[type="button"]:first-of-type').innerText = 'Update Asset';

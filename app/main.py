@@ -75,8 +75,18 @@ async def get_asset(asset_id: int):
     db = SessionLocal()
     asset = db.query(AssetDB).filter(AssetDB.id == asset_id).first()
     db.close()
+    
     if asset:
-        return asset
+        return {
+            "id": asset.id,
+            "name": asset.name,
+            "category": asset.category,
+            "license_type": asset.license_type,
+            "source_url": asset.source_url,
+            "description": asset.description,
+            "tags": asset.tags.split(",") if asset.tags else [],
+            "file_path": asset.file_path
+        }
     return {"error": "Asset not found"}
 
 # Create a new Asset with optional file upload
