@@ -1,5 +1,6 @@
 .env
 .venv
+venv
 __pycache__
 uploaded_assets/
 *.pyc
@@ -8,3 +9,8 @@ uploaded_assets/
 *.egg-info/
 dist/
 build/
+*.db
+.pytest_cache/
+htmlcov/
+.coverage
+test.db

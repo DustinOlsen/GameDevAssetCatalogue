@@ -24,15 +24,35 @@ security = HTTPBearer()
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Security setup
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
+# Database setup
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploaded_assets")
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+# Ensure upload directory exists
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Database
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
+# Dependency to get DB session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 # Directory to store uploaded asset files
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploaded_assets")
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
@@ -63,13 +83,6 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
-
-# Database setup
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
 
 # SQLAlchemy models
 class UserDB(Base):
