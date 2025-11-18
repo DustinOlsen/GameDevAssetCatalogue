@@ -1,261 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game Dev Asset Catalogue</title>
-    <style>
-        body { font-family: Arial; margin: 20px; }
-        .filter-section { background-color: #f0f0f0; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
-        .filter-section label { display: inline-block; margin-right: 15px; font-weight: bold; }
-        .filter-section select, .filter-section input { padding: 8px; margin-right: 10px; }
-        .filter-section button { background-color: #4CAF50; color: white; padding: 8px 15px; border: none; cursor: pointer; }
-        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #4CAF50; color: white; }
-        tr:hover { background-color: #f5f5f5; }
-        a { color: #4CAF50; text-decoration: none; }
-        button { background-color: #4CAF50; color: white; padding: 10px 20px; border: none; cursor: pointer; font-size: 16px; }
-        button:hover { background-color: #45a049; }
-        form { display: none; background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; margin-bottom: 20px; }
-        form.show { display: block; }
-        input, select, textarea { width: 100%; padding: 8px; margin: 5px 0 15px 0; box-sizing: border-box; }
-        label { display: block; font-weight: bold; margin-top: 10px; }
-    </style>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <h1>Game Dev Asset Catalogue</h1>
-    <button onclick="toggleForm()">+ Add New Asset</button>
-
-    <div class="filter-section">
-        <label>Filter by Category:</label>
-        <select id="filterCategory">
-            <option value="">All Categories</option>
-            <option value="3D Model">3D Model</option>
-            <option value="2D Sprite">2D Sprite</option>
-            <option value="Texture">Texture</option>
-            <option value="Tilemap">Tilemap</option>
-            <option value="Music">Music</option>
-            <option value="Sound Effect">Sound Effect</option>
-            <option value="Script">Script</option>
-            <option value="Other">Other</option>
-        </select>
-        
-        <label>Filter by Tags (comma-separated):</label>
-        <input type="text" id="filterTags" placeholder="e.g., weapon, fantasy">
-        
-        <button onclick="applyFilters()">Apply Filters</button>
-        <button onclick="clearFilters()">Clear Filters</button>
+    <!-- Auth Section -->
+    <div id="authSection">
+        <h1>Game Dev Asset Catalogue</h1>
+        <h2>Login / Register</h2>
+        <input type="text" id="authUsername" placeholder="Username">
+        <input type="password" id="authPassword" placeholder="Password" onkeypress="handleEnter(event)">
+        <button onclick="login()">Login</button>
+        <button onclick="register()">Register</button>
+        <p id="authStatus"></p>
     </div>
 
-    <form id="assetForm" class="show">
-        <h2>Create New Asset</h2>
-        <label>Name:</label>
-        <input type="text" id="name" required>
-        
-        <label>Category:</label>
-        <select id="category" required>
-            <option value="3D Model">3D Model</option>
-            <option value="2D Sprite">2D Sprite</option>
-            <option value="Texture">Texture</option>
-            <option value="Tilemap">Tilemap</option>
-            <option value="Music">Music</option>
-            <option value="Sound Effect">Sound Effect</option>
-            <option value="Script">Script</option>
-            <option value="Other">Other</option>
-        </select>
-        
-        <label>License Type:</label>
-        <input type="text" id="license_type" required>
-        
-        <label>Source URL:</label>
-        <input type="url" id="source_url" required>
-        
-        <label>Description:</label>
-        <textarea id="description" rows="3"></textarea>
-        
-        <label>Tags (comma-separated):</label>
-        <input type="text" id="tags">
-        
-        <label>File (optional):</label>
-        <input type="file" id="file">
-        
-        <button type="button" onclick="submitForm()">Create Asset</button>
-        <button type="button" onclick="toggleForm()">Cancel</button>
-    </form>
+    <!-- Main App Section -->
+    <div id="mainSection" style="display:none;">
+        <div class="header">
+            <h1>Game Dev Asset Catalogue</h1>
+            <div class="user-info">
+                <span id="currentUsername">Logged in as: <strong></strong></span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
 
-    <table id="assetsTable">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Category</th>
-                <th>License</th>
-                <th>Tags</th>
-                <th>Source</th>
-                <th>File</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
+        <button onclick="toggleForm()">+ Add New Asset</button>
 
-    <script>
-        function toggleForm() {
-            const form = document.getElementById('assetForm');
-            form.classList.toggle('show');
-            if (!form.classList.contains('show')) {
-                resetForm();
-            }
-        }
-
-        async function loadAssets(category = '', tags = '') {
-            let url = '/api/assets';
-            const params = new URLSearchParams();
+        <div class="filter-section">
+            <label>Filter by Category:</label>
+            <select id="filterCategory">
+                <option value="">All Categories</option>
+                <option value="3D Model">3D Model</option>
+                <option value="2D Sprite">2D Sprite</option>
+                <option value="Texture">Texture</option>
+                <option value="Tilemap">Tilemap</option>
+                <option value="Music">Music</option>
+                <option value="Sound Effect">Sound Effect</option>
+                <option value="Script">Script</option>
+                <option value="Other">Other</option>
+            </select>
             
-            if (category) {
-                params.append('category', category);
-            }
-            if (tags) {
-                params.append('tags', tags);
-            }
+            <label>Filter by Tags (comma-separated):</label>
+            <input type="text" id="filterTags" placeholder="e.g., weapon, fantasy">
             
-            if (params.toString()) {
-                url += '?' + params.toString();
-            }
+            <button onclick="applyFilters()">Apply Filters</button>
+            <button onclick="clearFilters()">Clear Filters</button>
+        </div>
+
+        <form id="assetForm">
+            <h2>Create New Asset</h2>
+            <label>Name:</label>
+            <input type="text" id="name" required>
             
-            const response = await fetch(url);
-            const data = await response.json();
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
+            <label>Category:</label>
+            <select id="category" required>
+                <option value="3D Model">3D Model</option>
+                <option value="2D Sprite">2D Sprite</option>
+                <option value="Texture">Texture</option>
+                <option value="Tilemap">Tilemap</option>
+                <option value="Music">Music</option>
+                <option value="Sound Effect">Sound Effect</option>
+                <option value="Script">Script</option>
+                <option value="Other">Other</option>
+            </select>
             
-            data.assets.forEach(asset => {
-                // Main asset row
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${asset.id}</td>
-                    <td>${asset.name}</td>
-                    <td>${asset.category}</td>
-                    <td>${asset.license_type}</td>
-                    <td>${asset.tags.join(', ')}</td>
-                    <td><a href="${asset.source_url}" target="_blank">Link</a></td>
-                    <td>${asset.file_path ? `<a href="/api/assets/${asset.id}/file">View</a>` : 'None'}</td>
-                    <td>
-                        <button onclick="editAsset(${asset.id})">Edit</button>
-                        <button onclick="deleteAsset(${asset.id})">Delete</button>
-                    </td>
-                `;
-                
-                // Description row
-                const descRow = tbody.insertRow();
-                descRow.innerHTML = `
-                    <td colspan="8" style="background-color: #f9f9f9; font-style: italic; padding: 10px;">
-                        <strong>Description:</strong> ${asset.description || 'No description provided'}
-                    </td>
-                `;
-            });
-        }
-
-        function applyFilters() {
-            const category = document.getElementById('filterCategory').value;
-            const tags = document.getElementById('filterTags').value;
-            loadAssets(category, tags);
-        }
-
-        function clearFilters() {
-            document.getElementById('filterCategory').value = '';
-            document.getElementById('filterTags').value = '';
-            loadAssets();
-        }
-
-        async function deleteAsset(asset_id) {
-            if (confirm('Are you sure you want to delete this asset?')) {
-                const response = await fetch(`/api/assets/${asset_id}`, {
-                    method: 'DELETE'
-                });
-
-                if (response.ok) {
-                    applyFilters();
-                } else {
-                    alert('Error deleting asset');
-                }
-            }
-        }
-
-        function resetForm() {
-            document.getElementById('assetForm').reset();
-            document.getElementById('assetForm').dataset.assetId = '';
-            document.getElementById('assetForm').querySelector('h2').innerText = 'Create New Asset';
-            document.getElementById('assetForm').querySelector('button[type="button"]:first-of-type').innerText = 'Create Asset';
-        }
-
-        async function editAsset(asset_id) {
-            const response = await fetch(`/api/assets/${asset_id}`);
-            const asset = await response.json();
+            <label>License Type:</label>
+            <input type="text" id="license_type" required>
             
-            // Convert tags array back to comma-separated string
-            const tagsString = Array.isArray(asset.tags) ? asset.tags.join(', ') : asset.tags;
+            <label>Source URL:</label>
+            <input type="url" id="source_url" required>
             
-            document.getElementById('name').value = asset.name;
-            document.getElementById('category').value = asset.category;
-            document.getElementById('license_type').value = asset.license_type;
-            document.getElementById('source_url').value = asset.source_url;
-            document.getElementById('description').value = asset.description || '';
-            document.getElementById('tags').value = tagsString;
+            <label>Description:</label>
+            <textarea id="description" rows="3"></textarea>
             
-            document.getElementById('assetForm').querySelector('h2').innerText = 'Edit Asset';
-            document.getElementById('assetForm').querySelector('button[type="button"]:first-of-type').innerText = 'Update Asset';
-            document.getElementById('assetForm').dataset.assetId = asset_id;
+            <label>Tags (comma-separated):</label>
+            <input type="text" id="tags">
             
-            document.getElementById('assetForm').classList.add('show');
-            document.getElementById('assetForm').scrollIntoView({ behavior: 'smooth' });
-        }
+            <label>File (optional):</label>
+            <input type="file" id="file">
+            
+            <button type="button" onclick="submitForm()">Create Asset</button>
+            <button type="button" onclick="toggleForm()">Cancel</button>
+        </form>
 
-        async function submitForm() {
-            const assetId = document.getElementById('assetForm').dataset.assetId;
-            const formData = new FormData();
-            formData.append('name', document.getElementById('name').value);
-            formData.append('category', document.getElementById('category').value);
-            formData.append('license_type', document.getElementById('license_type').value);
-            formData.append('source_url', document.getElementById('source_url').value);
-            
-            const description = document.getElementById('description').value;
-            if (description) {
-                formData.append('description', description);
-            }
-            
-            const tags = document.getElementById('tags').value;
-            if (tags) {
-                formData.append('tags', tags);
-            }
-            
-            const file = document.getElementById('file').files[0];
-            if (file) {
-                formData.append('file', file);
-            }
+        <table id="assetsTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>License</th>
+                    <th>Tags</th>
+                    <th>Source</th>
+                    <th>File</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
 
-            let url = '/api/assets';
-            let method = 'POST';
-            
-            if (assetId) {
-                url = `/api/assets/${assetId}`;
-                method = 'PUT';
-            }
-
-            const response = await fetch(url, {
-                method: method,
-                body: formData
-            });
-
-            if (response.ok) {
-                resetForm();
-                toggleForm();
-                clearFilters();
-            } else {
-                const error = await response.json();
-                alert('Error: ' + JSON.stringify(error));
-            }
-        }
-
-        loadAssets();
-    </script>
+    <script src="/static/js/app.js"></script>
 </body>
 </html>
