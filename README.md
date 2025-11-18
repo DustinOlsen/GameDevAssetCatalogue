@@ -66,7 +66,7 @@ A modern, multi-user web application for cataloguing and managing game developme
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/DustinOlsen/GameDevAssetCatalogue.git
    cd GameDevAssetCatalogue/GameDevAssetCatalogue
    ```
 
