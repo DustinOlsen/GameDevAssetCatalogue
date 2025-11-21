@@ -67,3 +67,37 @@ def test_protected_endpoint_with_invalid_token(client):
         headers={"Authorization": "Bearer invalid_token_here"}
     )
     assert response.status_code == 401
+
+
+def test_login_test_mode(client):
+    """Test login with test credentials"""
+    response = client.post(
+        "/api/auth/login",
+        json={
+            "username": "test",
+            "password": "test"
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_test_mode"] is True
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+
+def test_test_mode_demo_data(client):
+    """Test that demo data is seeded in test mode"""
+    # Login as test user
+    login_response = client.post(
+        "/api/auth/login",
+        json={"username": "test", "password": "test"}
+    )
+    token = login_response.json()["access_token"]
+
+    # Get assets (should auto-seed)
+    response = client.get(
+        "/api/assets",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200
+    assert len(response.json()) > 0

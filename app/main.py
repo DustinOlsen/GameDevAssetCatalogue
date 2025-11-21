@@ -162,21 +162,44 @@ async def register(user: UserRegister):
     
     return {"message": "User created successfully"}
 
+TEST_USERNAME = "test"
+TEST_PASSWORD = "test"
+TEST_USER_ID = 9999  # Use a reserved ID for test user
+
 @app.post("/api/auth/login")
-async def login(user: UserLogin):
-    db = SessionLocal()
-    db_user = db.query(UserDB).filter(UserDB.username == user.username).first()
-    db.close()
+def login(credentials: UserLogin, db: Session = Depends(get_db)):
+    """Login endpoint with test mode support"""
     
-    if not db_user or not verify_password(user.password, db_user.hashed_password):
+    # Check for test mode
+    if credentials.username == TEST_USERNAME and credentials.password == TEST_PASSWORD:
+        # Generate token for test user
+        access_token = create_access_token(
+            data={"sub": TEST_USERNAME, "user_id": TEST_USER_ID},
+            expires_delta=timedelta(hours=1)  # Short-lived test token
+        )
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "is_test_mode": True,  # Flag to frontend
+            "message": "Welcome to test mode! Your demo resets every hour."
+        }
+    
+    # Normal login flow
+    user = db.query(UserDB).filter(UserDB.username == credentials.username).first()
+    
+    if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": db_user.username}, 
-        expires_delta=access_token_expires
+        data={"sub": user.username, "user_id": user.id},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "is_test_mode": False
+    }
 
 # Asset endpoints (updated for ownership)
 @app.get("/api/assets/{asset_id}")
@@ -241,42 +264,54 @@ async def create_asset(
     return db_asset
 
 @app.get("/api/assets")
-async def get_assets(
-    category: Optional[AssetCategory] = Query(None), 
-    tags: Optional[str] = Query(None),
-    current_user: UserDB = Depends(get_current_user)
+def get_assets(
+    category: Optional[str] = None,
+    tags: Optional[str] = None,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    db = SessionLocal()
-    query = db.query(AssetDB).filter(AssetDB.owner_id == current_user.id)
+    """Get user's assets with auto-seeding for test user"""
     
-    if category is not None:
-        query = query.filter(AssetDB.category == category.value)
+    user_id = current_user.get("user_id")
+    is_test_mode = user_id == TEST_USER_ID
     
-    if tags is not None:
-        tag_list = [tag.strip() for tag in tags.split(",")]
-        assets = query.all()
-        filtered_assets = [a for a in assets if any(tag in a.tags.split(",") for tag in tag_list)]
-    else:
-        filtered_assets = query.all()
+    # Auto-seed test data on first access
+    if is_test_mode:
+        existing_count = db.query(Asset).filter(Asset.user_id == TEST_USER_ID).count()
+        if existing_count == 0:
+            # Seed demo data automatically
+            demo_assets = [
+                Asset(
+                    name="Rusty Metal Texture",
+                    description="High-res rusty metal surface",
+                    category="Texture",
+                    tags="metal,rust,pbr",
+                    license_type="CC0",
+                    source_url="https://example.com",
+                    user_id=TEST_USER_ID
+                ),
+                Asset(
+                    name="Forest Ambience",
+                    description="Looping forest background music",
+                    category="Audio",
+                    tags="music,ambient,forest",
+                    license_type="MIT",
+                    source_url="https://example.com",
+                    user_id=TEST_USER_ID
+                ),
+            ]
+            db.add_all(demo_assets)
+            db.commit()
     
-    db.close()
+    query = db.query(Asset).filter(Asset.user_id == user_id)
     
-    result = []
-    for asset in filtered_assets:
-        asset_dict = {
-            "id": asset.id,
-            "name": asset.name,
-            "category": asset.category,
-            "license_type": asset.license_type,
-            "source_url": asset.source_url,
-            "description": asset.description,
-            "tags": asset.tags.split(",") if asset.tags else [],
-            "file_path": asset.file_path,
-            "owner_id": asset.owner_id
-        }
-        result.append(asset_dict)
+    if category:
+        query = query.filter(Asset.category == category)
     
-    return {"assets": result}
+    if tags:
+        query = query.filter(Asset.tags.contains(tags))
+    
+    return query.all()
 
 @app.get("/api/assets/{asset_id}/file")
 async def get_asset_file(asset_id: int, current_user: UserDB = Depends(get_current_user)):
@@ -379,3 +414,67 @@ async def get_ui():
     html_path = os.path.join(os.path.dirname(__file__), "..", "templates", "index.html")
     with open(html_path, "r") as f:
         return f.read()
+
+@app.get("/api/users/me")
+def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    """Get current user info"""
+    return {
+        "user_id": current_user.get("user_id"),
+        "username": current_user.get("sub"),
+        "is_test_mode": current_user.get("user_id") == TEST_USER_ID
+    }
+
+@app.post("/api/test/seed-demo-data")
+def seed_demo_data(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Seed demo assets for test user (test mode only)"""
+    
+    # Only allow test user
+    if current_user.get("user_id") != TEST_USER_ID:
+        raise HTTPException(status_code=403, detail="Test data seeding only available in test mode")
+    
+    demo_assets = [
+        {
+            "name": "Rusty Metal Texture",
+            "description": "High-res rusty metal surface for game environments",
+            "category": "Texture",
+            "tags": "metal,rust,pbr,scifi",
+            "license_type": "CC0",
+            "source_url": "https://example.com",
+            "user_id": TEST_USER_ID
+        },
+        {
+            "name": "Forest Ambience",
+            "description": "Looping forest background music and ambience",
+            "category": "Audio",
+            "tags": "music,ambient,nature,forest",
+            "license_type": "MIT",
+            "source_url": "https://example.com",
+            "user_id": TEST_USER_ID
+        },
+        {
+            "name": "Character Model Pack",
+            "description": "Stylized character models with animations",
+            "category": "Model",
+            "tags": "character,3d,animated,rigged",
+            "license_type": "Commercial",
+            "source_url": "https://example.com",
+            "user_id": TEST_USER_ID
+        },
+    ]
+    
+    for asset_data in demo_assets:
+        existing = db.query(Asset).filter(
+            Asset.name == asset_data["name"],
+            Asset.user_id == TEST_USER_ID
+        ).first()
+        
+        if not existing:
+            new_asset = Asset(**asset_data)
+            db.add(new_asset)
+    
+    db.commit()
+    
+    return {
+        "message": "Demo data seeded successfully!",
+        "assets_count": len(demo_assets)
+    }

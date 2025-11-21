@@ -153,6 +153,22 @@ curl -X GET http://localhost:8000/api/assets/1/download \
   -o downloaded_asset.png
 ```
 
+## 🧪 Test Mode
+
+Try the app without creating an account:
+
+**Login credentials:**
+- Username: `test`
+- Password: `test`
+
+Test mode comes pre-populated with sample assets so you can immediately explore the full API. Tokens expire after 1 hour.
+
+```bash
+curl -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "test", "password": "test"}'
+```
+
 ## 🧪 Testing
 
 Run all tests:
@@ -252,11 +268,15 @@ MIT License – See LICENSE file for details.
 
 ## 👤 Author
 
+**Dustin Olsen** (v01d / v01dworks)
+
 Built as a learning project to demonstrate backend development best practices:
 - Clean REST API design
 - Secure authentication & authorization
 - Comprehensive test coverage
 - Production-ready code structure
+
+If you find this project useful, consider supporting my work at [ko-fi.com/v01dworks](https://ko-fi.com/v01dworks)
 
 ## 📞 Support
 
