@@ -183,17 +183,19 @@ pytest tests/test_auth.py::test_login_success -v
 ```
 GameDevAssetCatalogue/
 ├── app/
-│   ├── main.py              # FastAPI app, routes, models
+│   ├── main.py              # FastAPI application & logic
 │   └── __init__.py
-├── tests/
-│   ├── conftest.py          # Pytest fixtures (DB, auth, client)
-│   ├── test_auth.py         # Auth endpoints tests
-│   ├── test_assets.py       # Asset CRUD tests
-│   └── test_files.py        # File upload/download tests
+├── static/                  # Frontend assets
+│   ├── css/
+│   └── js/
+├── templates/               # HTML templates (Jinja2)
+│   └── index.html
+├── tests/                   # Test suite
+├── uploaded_assets/         # Storage for user uploads
+├── docker-compose.yml       # Container orchestration
+├── Dockerfile               # API container definition
 ├── requirements.txt         # Python dependencies
-├── pytest.ini               # Pytest config
-├── README.md                # This file
-└── .env.example             # Environment template
+└── README.md                # This file
 ```
 
 ## 🔐 Security
@@ -257,13 +259,9 @@ MIT License – See LICENSE file for details.
 
 **Dustin Olsen** (v01d / v01dworks)
 
-Built as a learning project to demonstrate backend development best practices:
-- Clean REST API design
-- Secure authentication & authorization
-- Comprehensive test coverage
-- Production-ready code structure
+Built as a portfolio project demonstrating production-ready backend architecture, secure authentication flows, and full-stack integration.
 
-If you find this project useful, consider supporting my work at [ko-fi.com/v01dworks](https://ko-fi.com/v01dworks)
+[![Ko-Fi](https://img.shields.io/badge/Support%20my%20work-Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/v01dworks)
 
 ## 📞 Support
 
