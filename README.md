@@ -1,81 +1,68 @@
 # Game Dev Asset Catalogue
 
-A production-ready REST API for managing game development assets (textures, models, audio, etc.) with user authentication, file uploads, and asset organization.
+A production-ready Asset Management System for game developers. It features a robust REST API backend and a clean, responsive frontend interface for managing textures, models, audio, and scripts.
+
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688.svg)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED.svg)
 
 ## 🎯 Features
 
-- **User Authentication** – JWT-based auth with secure password hashing (bcrypt)
+- **User Authentication** – JWT-based auth with secure password hashing (`pbkdf2_sha256`)
 - **Asset Management** – Create, read, update, delete assets with rich metadata
-- **File Uploads** – Upload and manage asset files with preview support
+- **File Uploads** – Upload and manage asset files with instant preview support
+- **Visual Interface** – Clean, responsive dashboard to browse and manage assets
 - **Search & Filter** – Filter by category, tags, and search metadata
-- **User Isolation** – Users only see their own assets
-- **RESTful API** – Clean, documented endpoints with OpenAPI/Swagger
+- **User Isolation** – Users only see and manage their own assets
+- **RESTful API** – Fully documented endpoints with OpenAPI/Swagger
 
 ## 🛠 Tech Stack
 
-- **Framework**: FastAPI (async, modern Python web framework)
-- **Database**: PostgreSQL with SQLAlchemy ORM
-- **Auth**: JWT (python-jose) + bcrypt password hashing
-- **Testing**: pytest + pytest-asyncio (22 tests, 100% passing)
-- **Server**: Uvicorn (ASGI)
+- **Backend**: FastAPI (Async Python)
+- **Database**: PostgreSQL (via Docker) with SQLAlchemy ORM
+- **Frontend**: Vanilla JavaScript, HTML5, CSS3 (served via Jinja2 templates)
+- **Auth**: JWT (JSON Web Tokens) + Passlib (pbkdf2_sha256)
+- **Containerization**: Docker & Docker Compose
+- **Testing**: pytest + pytest-asyncio
 
-## 📋 Prerequisites
+## 🚀 Quick Start (Recommended)
 
-- Python 3.11+
-- PostgreSQL 12+
-- pip / virtualenv
+The easiest way to run the project is with Docker Compose.
 
-## 🚀 Quick Start
-
-### 1. Clone & Setup
+### 1. Clone & Run
 
 ```bash
 git clone <repo-url>
 cd GameDevAssetCatalogue
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+
+# Build and start the services
+docker-compose up --build
 ```
+
+This will start the backend API, database, and frontend interface. Access the app at `http://localhost:8000`.
 
 ### 2. Configure Environment
 
-Create a `.env` file in the project root:
+Copy the example environment file and update the settings:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your settings:
+Edit `.env` with your PostgreSQL credentials and a secure secret key:
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost/asset_catalogue
+DATABASE_URL=postgresql://user:password@db/asset_catalogue
 SECRET_KEY=your-secret-key-here-min-32-chars
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-### 3. Setup Database
+### 3. Access the App
 
-```bash
-# Create database (if not exists)
-createdb asset_catalogue
-
-# Run migrations (future: with Alembic)
-python -c "from app.main import Base, engine; Base.metadata.create_all(engine)"
-```
-
-### 4. Run the Server
-
-```bash
-uvicorn app.main:app --reload
-```
-
-Server runs on `http://localhost:8000`
-
-### 5. View API Docs
-
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- **API Docs**: http://localhost:8000/docs
+- **Frontend**: http://localhost:8000
 
 ## 📚 API Examples
 
