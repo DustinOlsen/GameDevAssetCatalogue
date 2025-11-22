@@ -10,11 +10,21 @@
     <!-- Auth Section -->
     <div id="authSection">
         <h1>Game Dev Asset Catalogue</h1>
-        <h2>Login / Register</h2>
-        <input type="text" id="authUsername" placeholder="Username">
-        <input type="password" id="authPassword" placeholder="Password" onkeypress="handleEnter(event)">
-        <button onclick="login()">Login</button>
-        <button onclick="register()">Register</button>
+        <h2>Portfolio Demo Login</h2>
+        
+        <!-- Pre-filled for convenience -->
+        <input type="text" id="authUsername" placeholder="Username" value="test">
+        <input type="password" id="authPassword" placeholder="Password" value="test" onkeypress="handleEnter(event)">
+        
+        <button onclick="login()">Login as Demo User</button>
+        
+        <!-- Removed Register Button -->
+        
+        <p style="margin-top: 15px; color: #666; font-size: 0.9em;">
+            <strong>Note:</strong> Registration is disabled.<br>
+            Please use <strong>test / test</strong> to explore the app.
+        </p>
+        
         <p id="authStatus"></p>
     </div>
 

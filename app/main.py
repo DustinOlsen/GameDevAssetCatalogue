@@ -187,21 +187,11 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 # Auth endpoints
 @app.post("/api/auth/register")
 async def register(user: UserRegister):
-    db = SessionLocal()
-    existing_user = db.query(UserDB).filter(UserDB.username == user.username).first()
-    if existing_user:
-        db.close()
-        raise HTTPException(status_code=400, detail="Username already taken")
-    
-    db_user = UserDB(
-        username=user.username,
-        hashed_password=hash_password(user.password)
+    # DEMO MODE: Disable registration
+    raise HTTPException(
+        status_code=403, 
+        detail="Registration is disabled for this demo. Please log in with username 'test' and password 'test'."
     )
-    db.add(db_user)
-    db.commit()
-    db.close()
-    
-    return {"message": "User created successfully"}
 
 @app.post("/api/auth/login")
 def login(credentials: UserLogin, db: Session = Depends(get_db)):
