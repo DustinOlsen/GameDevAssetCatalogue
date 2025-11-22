@@ -245,25 +245,50 @@ label {
     text-decoration: none;
 }
 
-.github-btn {
+/* Social Buttons Container */
+.social-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Shared Button Styles */
+.social-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    background-color: #24292e;
+    gap: 8px;
     color: white !important; /* Force white text */
-    padding: 10px 20px;
+    padding: 10px 16px;
     border-radius: 6px;
     text-decoration: none;
-    font-size: 0.95em;
+    font-size: 0.9em;
     font-weight: 500;
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    flex: 1; /* Make them equal width */
+    min-width: 120px; /* Prevent squishing on small screens */
 }
 
-.github-btn:hover {
-    background-color: #000;
+.social-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     text-decoration: none;
+}
+
+/* GitHub Specific */
+.github-btn {
+    background-color: #24292e;
+}
+.github-btn:hover {
+    background-color: #000;
+}
+
+/* LinkedIn Specific */
+.linkedin-btn {
+    background-color: #0077b5; /* Official LinkedIn Blue */
+}
+.linkedin-btn:hover {
+    background-color: #005582;
 }
