@@ -213,3 +213,57 @@ label {
     font-style: italic;
     padding: 10px;
 }
+
+/* Auth Footer Styling */
+.auth-footer {
+    margin-top: 25px;
+    text-align: center;
+}
+
+.divider {
+    height: 1px;
+    background: #eee;
+    margin: 20px 0;
+    width: 100%;
+}
+
+.author-credit {
+    color: #888;
+    font-size: 0.9em;
+    margin-bottom: 15px;
+}
+
+.author-credit a {
+    color: #555;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.2s;
+}
+
+.author-credit a:hover {
+    color: #4CAF50;
+    text-decoration: none;
+}
+
+.github-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background-color: #24292e;
+    color: white !important; /* Force white text */
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.95em;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.github-btn:hover {
+    background-color: #000;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    text-decoration: none;
+}
