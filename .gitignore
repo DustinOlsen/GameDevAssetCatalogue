@@ -57,3 +57,7 @@ temp/
 # OS
 .DS_Store
 Thumbs.db
+
+# Docke
+postgres_data/
+uploaded_assets/

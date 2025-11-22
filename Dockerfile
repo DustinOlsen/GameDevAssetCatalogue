@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app/ ./app/
+COPY static/ ./static/
+COPY templates/ ./templates/
 COPY pytest.ini .
 
 # Expose port

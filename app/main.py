@@ -1,81 +1,33 @@
 from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.staticfiles import StaticFiles
-from typing import Optional
-from enum import Enum
-from fastapi.params import Query
 from fastapi.responses import FileResponse, HTMLResponse
-from pydantic import BaseModel
-import os
-import shutil
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.security import OAuth2PasswordBearer, HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
-from dotenv import load_dotenv
+from sqlalchemy.orm import sessionmaker, relationship, Session
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
+from typing import Optional
+from pydantic import BaseModel
+import os
+from pathlib import Path
+from fastapi.middleware.cors import CORSMiddleware
+from enum import Enum
+import shutil
 
-load_dotenv()
+# Configuration
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
-app = FastAPI()
-security = HTTPBearer()
+# Test mode constants
+TEST_USERNAME = "test"
+TEST_PASSWORD = "test"
+TEST_USER_ID = 9999
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Database setup
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploaded_assets")
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-# Ensure upload directory exists
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-# Database
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-# Directory to store uploaded asset files
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
-
-class AssetCategory(str, Enum):
-    MODEL_3D = "3D Model"
-    SPRITE_2D = "2D Sprite"
-    TILEMAP = "Tilemap"
-    TEXTURE = "Texture"
-    MUSIC = "Music"
-    SFX = "Sound Effect"
-    SCRIPT = "Script"
-    OTHER = "Other"
-
-class Asset(BaseModel):
-    id: Optional[int] = None
-    name: str
-    category: AssetCategory
-    license_type: str
-    source_url: str
-    description: Optional[str] = None
-    tags: list[str] = [] 
-    file_path: Optional[str] = None
-
+# Pydantic models for request validation
 class UserRegister(BaseModel):
     username: str
     password: str
@@ -84,30 +36,113 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
+class AssetCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: str
+    tags: Optional[str] = None
+    license_type: Optional[str] = None
+    source_url: Optional[str] = None
+
+# Ensure Upload Directory Exists
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "uploaded_assets"))
+UPLOAD_DIR.mkdir(exist_ok=True)
+
+# Asset categories enum (Must match Frontend)
+class AssetCategory(str, Enum):
+    TEXTURE = "Texture"
+    MODEL = "3D Model"
+    AUDIO = "Audio"
+    SCRIPT = "Script"
+    ANIMATION = "Animation"
+    OTHER = "Other"
+
+# Initialize FastAPI app
+app = FastAPI()
+
+# --- ADD/REPLACE THIS SECTION ---
+# Get the absolute path to the project root
+BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_DIR = BASE_DIR / "static"
+TEMPLATES_DIR = BASE_DIR / "templates"
+
+# Mount static files with absolute path
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+# Configure templates with absolute path
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+# --------------------------------
+
+# ADD CORS MIDDLEWARE HERE
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify your frontend domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Password hashing
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+
+# OAuth2 scheme 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+security = HTTPBearer()
+
+# Database configuration
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
+
+# Create database engine - remove SQLite-specific connect_args for PostgreSQL
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+
+# Create a configured "Session" class
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create a session
+db = SessionLocal()
+
+# Base class for declarative models
+Base = declarative_base()
+
+# JWT secret key and algorithm
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
 # SQLAlchemy models
 class UserDB(Base):
     __tablename__ = "users"
-    
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     assets = relationship("AssetDB", back_populates="owner")
 
 class AssetDB(Base):
-    __tablename__ = "assets_db"
-    
+    __tablename__ = "assets"  # Ensure this is "assets"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    category = Column(String)
+    name = Column(String, nullable=False)
+    description = Column(Text)
+    category = Column(String, nullable=False)
+    tags = Column(String)
     license_type = Column(String)
     source_url = Column(String)
-    description = Column(Text, nullable=True)
-    tags = Column(String)
-    file_path = Column(String, nullable=True)
-    owner_id = Column(Integer, ForeignKey("users.id"))
+    file_path = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     owner = relationship("UserDB", back_populates="assets")
 
 Base.metadata.create_all(bind=engine)
+
+# Dependency to get DB session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # Helper functions
 def hash_password(password: str) -> str:
@@ -127,21 +162,27 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Verify JWT token and return current user info"""
+    token = credentials.credentials
+    
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        if username is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
+        user_id: int = payload.get("user_id")
+        
+        if username is None or user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials"
+            )
+        
+        return {"sub": username, "user_id": user_id}
+    
     except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    db = SessionLocal()
-    user = db.query(UserDB).filter(UserDB.username == username).first()
-    db.close()
-    
-    if user is None:
-        raise HTTPException(status_code=401, detail="User not found")
-    return user
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials"
+        )
 
 # Auth endpoints
 @app.post("/api/auth/register")
@@ -162,48 +203,59 @@ async def register(user: UserRegister):
     
     return {"message": "User created successfully"}
 
-TEST_USERNAME = "test"
-TEST_PASSWORD = "test"
-TEST_USER_ID = 9999  # Use a reserved ID for test user
-
 @app.post("/api/auth/login")
 def login(credentials: UserLogin, db: Session = Depends(get_db)):
-    """Login endpoint with test mode support"""
-    
-    # Check for test mode
+    # 1. Check for Test User Login
     if credentials.username == TEST_USERNAME and credentials.password == TEST_PASSWORD:
-        # Generate token for test user
+
+        db_test_user = db.query(UserDB).filter(UserDB.id == TEST_USER_ID).first()
+        
+        if not db_test_user:
+            # Create the test user on the fly
+            test_user = UserDB(
+                id=TEST_USER_ID,
+                username=TEST_USERNAME,
+                hashed_password=pwd_context.hash(TEST_PASSWORD)
+            )
+            db.add(test_user)
+            db.commit()
+            print(f"Created Test User (ID: {TEST_USER_ID}) in database.")
+
+        # Generate token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": TEST_USERNAME, "user_id": TEST_USER_ID},
-            expires_delta=timedelta(hours=1)  # Short-lived test token
+            expires_delta=access_token_expires
         )
         return {
-            "access_token": access_token,
+            "access_token": access_token, 
             "token_type": "bearer",
-            "is_test_mode": True,  # Flag to frontend
-            "message": "Welcome to test mode! Your demo resets every hour."
+            "is_test_mode": True
         }
-    
-    # Normal login flow
+
+    # 2. Regular User Login
     user = db.query(UserDB).filter(UserDB.username == credentials.username).first()
+    if not user or not pwd_context.verify(credentials.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
-    if not user or not verify_password(credentials.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "user_id": user.id},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expires_delta=access_token_expires
     )
-    
     return {
-        "access_token": access_token,
+        "access_token": access_token, 
         "token_type": "bearer",
         "is_test_mode": False
     }
 
 # Asset endpoints (updated for ownership)
 @app.get("/api/assets/{asset_id}")
-async def get_asset(asset_id: int, current_user: UserDB = Depends(get_current_user)):
+async def get_asset(asset_id: int, current_user: dict = Depends(get_current_user)):
     db = SessionLocal()
     asset = db.query(AssetDB).filter(AssetDB.id == asset_id).first()
     db.close()
@@ -218,6 +270,7 @@ async def get_asset(asset_id: int, current_user: UserDB = Depends(get_current_us
             "description": asset.description,
             "tags": asset.tags.split(",") if asset.tags else [],
             "file_path": asset.file_path,
+            "created_at": asset.created_at.isoformat() if asset.created_at else None, # ADDED THIS FIELD
             "owner_id": asset.owner_id
         }
     raise HTTPException(status_code=404, detail="Asset not found")
@@ -231,7 +284,7 @@ async def create_asset(
     description: Optional[str] = Form(None),
     tags: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
-    current_user: UserDB = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)  # CHANGED
 ):
     db = SessionLocal()
     
@@ -254,7 +307,7 @@ async def create_asset(
         description=description,
         tags=",".join(tag_list),
         file_path=file_path,
-        owner_id=current_user.id
+        owner_id=current_user["user_id"]  # CHANGED
     )
     db.add(db_asset)
     db.commit()
@@ -270,62 +323,87 @@ def get_assets(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get user's assets with auto-seeding for test user"""
-    
     user_id = current_user.get("user_id")
     is_test_mode = user_id == TEST_USER_ID
     
-    # Auto-seed test data on first access
+    # 1. Handle Test User & Seeding
     if is_test_mode:
-        existing_count = db.query(Asset).filter(Asset.user_id == TEST_USER_ID).count()
-        if existing_count == 0:
-            # Seed demo data automatically
+        # Ensure Test User exists
+        db_test_user = db.query(UserDB).filter(UserDB.id == TEST_USER_ID).first()
+        if not db_test_user:
+            test_user = UserDB(
+                id=TEST_USER_ID,
+                username=TEST_USERNAME,
+                hashed_password=pwd_context.hash(TEST_PASSWORD)
+            )
+            db.add(test_user)
+            db.commit()
+
+        # Seed assets if empty
+        if db.query(AssetDB).filter(AssetDB.owner_id == TEST_USER_ID).count() == 0:
             demo_assets = [
-                Asset(
+                AssetDB(
                     name="Rusty Metal Texture",
                     description="High-res rusty metal surface",
                     category="Texture",
                     tags="metal,rust,pbr",
                     license_type="CC0",
                     source_url="https://example.com",
-                    user_id=TEST_USER_ID
+                    owner_id=TEST_USER_ID
                 ),
-                Asset(
+                AssetDB(
                     name="Forest Ambience",
                     description="Looping forest background music",
                     category="Audio",
                     tags="music,ambient,forest",
                     license_type="MIT",
                     source_url="https://example.com",
-                    user_id=TEST_USER_ID
+                    owner_id=TEST_USER_ID
                 ),
             ]
             db.add_all(demo_assets)
             db.commit()
     
-    query = db.query(Asset).filter(Asset.user_id == user_id)
+    # Query Logic
+    query = db.query(AssetDB).filter(AssetDB.owner_id == user_id)
     
     if category:
-        query = query.filter(Asset.category == category)
+        query = query.filter(AssetDB.category == category)
     
     if tags:
-        query = query.filter(Asset.tags.contains(tags))
+        query = query.filter(AssetDB.tags.contains(tags))
     
-    return query.all()
+    assets = query.all()
+
+    return {
+        "assets": [
+            {
+                "id": asset.id,
+                "name": asset.name,
+                "description": asset.description,
+                "category": asset.category,
+                "tags": asset.tags.split(",") if asset.tags else [],
+                "license_type": asset.license_type,
+                "source_url": asset.source_url,
+                "file_path": asset.file_path,
+                "created_at": asset.created_at.isoformat() if asset.created_at else None,
+                "owner_id": asset.owner_id
+            }
+            for asset in assets
+        ]
+    }
 
 @app.get("/api/assets/{asset_id}/file")
-async def get_asset_file(asset_id: int, current_user: UserDB = Depends(get_current_user)):
+async def get_asset_file(asset_id: int, current_user: dict = Depends(get_current_user)):  # CHANGED
     db = SessionLocal()
     asset = db.query(AssetDB).filter(AssetDB.id == asset_id).first()
     db.close()
     
-    if not asset or asset.owner_id != current_user.id:
+    if not asset or asset.owner_id != current_user["user_id"]:  # CHANGED
         raise HTTPException(status_code=403, detail="Not authorized")
     
     if asset.file_path and os.path.exists(asset.file_path):
-        # Extract original filename
         filename = os.path.basename(asset.file_path)
-        # Remove the "ID_" prefix (e.g., "123_myfile.png" -> "myfile.png")
         if '_' in filename:
             filename = filename.split('_', 1)[1]
         
@@ -337,12 +415,12 @@ async def get_asset_file(asset_id: int, current_user: UserDB = Depends(get_curre
     raise HTTPException(status_code=404, detail="File not found")
 
 @app.get("/api/assets/{asset_id}/file-preview")
-async def get_asset_file_preview(asset_id: int, current_user: UserDB = Depends(get_current_user)):
+async def get_asset_file_preview(asset_id: int, current_user: dict = Depends(get_current_user)):  # CHANGED
     db = SessionLocal()
     asset = db.query(AssetDB).filter(AssetDB.id == asset_id).first()
     db.close()
     
-    if not asset or asset.owner_id != current_user.id:
+    if not asset or asset.owner_id != current_user["user_id"]:  # CHANGED
         raise HTTPException(status_code=403, detail="Not authorized")
     
     if asset.file_path and os.path.exists(asset.file_path):
@@ -350,11 +428,11 @@ async def get_asset_file_preview(asset_id: int, current_user: UserDB = Depends(g
     raise HTTPException(status_code=404, detail="File not found")
 
 @app.delete("/api/assets/{asset_id}")
-async def delete_asset(asset_id: int, current_user: UserDB = Depends(get_current_user)):
+async def delete_asset(asset_id: int, current_user: dict = Depends(get_current_user)):  # CHANGED
     db = SessionLocal()
     asset = db.query(AssetDB).filter(AssetDB.id == asset_id).first()
     
-    if not asset or asset.owner_id != current_user.id:
+    if not asset or asset.owner_id != current_user["user_id"]:  # CHANGED
         db.close()
         raise HTTPException(status_code=403, detail="Not authorized")
     
@@ -376,12 +454,12 @@ async def update_asset(
     description: Optional[str] = Form(None),
     tags: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
-    current_user: UserDB = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)  # CHANGED
 ):
     db = SessionLocal()
     asset = db.query(AssetDB).filter(AssetDB.id == asset_id).first()
     
-    if not asset or asset.owner_id != current_user.id:
+    if not asset or asset.owner_id != current_user["user_id"]:  # CHANGED
         db.close()
         raise HTTPException(status_code=403, detail="Not authorized")
     
@@ -432,45 +510,45 @@ def seed_demo_data(current_user: dict = Depends(get_current_user), db: Session =
     if current_user.get("user_id") != TEST_USER_ID:
         raise HTTPException(status_code=403, detail="Test data seeding only available in test mode")
     
+    # Use AssetDB objects directly
     demo_assets = [
-        {
-            "name": "Rusty Metal Texture",
-            "description": "High-res rusty metal surface for game environments",
-            "category": "Texture",
-            "tags": "metal,rust,pbr,scifi",
-            "license_type": "CC0",
-            "source_url": "https://example.com",
-            "user_id": TEST_USER_ID
-        },
-        {
-            "name": "Forest Ambience",
-            "description": "Looping forest background music and ambience",
-            "category": "Audio",
-            "tags": "music,ambient,nature,forest",
-            "license_type": "MIT",
-            "source_url": "https://example.com",
-            "user_id": TEST_USER_ID
-        },
-        {
-            "name": "Character Model Pack",
-            "description": "Stylized character models with animations",
-            "category": "Model",
-            "tags": "character,3d,animated,rigged",
-            "license_type": "Commercial",
-            "source_url": "https://example.com",
-            "user_id": TEST_USER_ID
-        },
+        AssetDB(
+            name="Rusty Metal Texture",
+            description="High-res rusty metal surface for game environments",
+            category="Texture",
+            tags="metal,rust,pbr,scifi",
+            license_type="CC0",
+            source_url="https://example.com",
+            owner_id=TEST_USER_ID
+        ),
+        AssetDB(
+            name="Forest Ambience",
+            description="Looping forest background music and ambience",
+            category="Audio",
+            tags="music,ambient,nature,forest",
+            license_type="MIT",
+            source_url="https://example.com",
+            owner_id=TEST_USER_ID
+        ),
+        AssetDB(
+            name="Character Model Pack",
+            description="Stylized character models with animations",
+            category="3D Model",
+            tags="character,3d,animated,rigged",
+            license_type="Commercial",
+            source_url="https://example.com",
+            owner_id=TEST_USER_ID
+        ),
     ]
     
-    for asset_data in demo_assets:
-        existing = db.query(Asset).filter(
-            Asset.name == asset_data["name"],
-            Asset.user_id == TEST_USER_ID
+    for asset in demo_assets:
+        existing = db.query(AssetDB).filter(
+            AssetDB.name == asset.name,
+            AssetDB.owner_id == TEST_USER_ID
         ).first()
         
         if not existing:
-            new_asset = Asset(**asset_data)
-            db.add(new_asset)
+            db.add(asset)
     
     db.commit()
     
